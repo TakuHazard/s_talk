@@ -144,8 +144,46 @@ int main(int argc, char* argv[]){
 
 
 
-	struct addrinfo hints, *res;
-	getaddrinfo(givenHostName, NULL, &hints, &res);
+	struct addrinfo hints, *res,*p;
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_DGRAM;
+
+	int rv = getaddrinfo(givenHostName, NULL, &hints, &res);
+	if(rv < 0){
+		printf("ERRROR \n");
+		return 1;
+	}
+	printf("Checking results after getaddrinfo \n");
+	printf("ai_flags %d ai_family %d ai_socktype %d ai_cannonname %s \n",
+		res->ai_flags, res->ai_family, res->ai_socktype, res->ai_canonname);
+
+	char ipstr[INET6_ADDRSTRLEN];
+
+	for(p = res;p != NULL; p = p->ai_next) {
+        void *addr;
+        char *ipver;
+
+        // get the pointer to the address itself,
+        // different fields in IPv4 and IPv6:
+        if (p->ai_family == AF_INET) { // IPv4
+            struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
+            addr = &(ipv4->sin_addr);
+            ipver = "IPv4";
+        } else { // IPv6
+            struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
+            addr = &(ipv6->sin6_addr);
+            ipver = "IPv6";
+        }
+
+        // convert the IP to a string and print it:
+        inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
+        printf("  %s: %s\n", ipver, ipstr);
+    }
+
+    freeaddrinfo(res); // free the linked list
+    printf("IP ADDRESS is %s\n", ipstr);
+
 
 	struct sockaddr_in sin;
 	memset(&sin, 0, sizeof(sin));
@@ -154,10 +192,13 @@ int main(int argc, char* argv[]){
 	sin.sin_port = htons(localPortNum);
 
 
-	sinRemote.sin_family = AF_INET;
 	memset(&sinRemote, 0, sizeof(sinRemote));
-	sinRemote.sin_addr.s_addr = htonl(INADDR_ANY);
+	sinRemote.sin_family = res->ai_family;
+	// sinRemote.sin_addr.s_addr = htonl(INADDR_ANY);
 	sinRemote.sin_port = htons(remotePortNum);
+	inet_pton(AF_INET,ipstr,&(sinRemote.sin_addr));
+
+	printf("Address of remote afterwards is %d\n",sinRemote.sin_addr.s_addr);
 
 	// Create the socket for UDP
 	socketDescriptor = socket(AF_INET,SOCK_DGRAM,0);
