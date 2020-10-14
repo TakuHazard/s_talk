@@ -22,24 +22,23 @@
 #define MSG_MAX_LEN 1024
 
 
-static struct sockaddr_in sinRemote;
-static int socketDescriptor;
+// static struct sockaddr_in sinRemote;
 static unsigned int sin_len;
 
+struct socketStuff{
+	int socketDescriptor;
+	struct sockaddr_in sin;
+};
 
-void *get_in_addr(struct sockaddr *sa)
-{
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
 
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
+void* sendThread(void* socketInput){
+	struct socketStuff* socketInfo = (struct socketStuff* ) socketInput;
+	
+	int socketDescriptor = socketInfo->socketDescriptor;
+	struct sockaddr_in sinRemote = socketInfo->sin;
 
-void* sendThread(void* unused){
 	bool continueSending = true;
 	while(continueSending){
-
 		// Compose the reply message
 		char messageTx[MSG_MAX_LEN];
 		fgets(messageTx, MSG_MAX_LEN, stdin);
@@ -48,17 +47,17 @@ void* sendThread(void* unused){
 		sin_len = sizeof(sinRemote);
 		sendto(socketDescriptor, messageTx, strlen(messageTx), 0, (struct sockaddr*) &sinRemote, sin_len);
 
-
 	}
 
 	return NULL;
 
-
-	
 }
 
-void* receiveThread(void* unused){
+void* receiveThread(void* socketInput){
 	// Address
+	struct socketStuff* socketInfo = (struct socketStuff* ) socketInput;
+	int socketDescriptor = socketInfo->socketDescriptor;
+	struct sockaddr_in sinRemote = socketInfo->sin;
 	while(1){
 		sin_len = sizeof(sinRemote);
 		char messageRx[MSG_MAX_LEN];
@@ -74,12 +73,15 @@ void* receiveThread(void* unused){
 }
 
 int main(int argc, char* argv[]){
+	int socketDescriptor;
+	struct sockaddr_in sinRemote;
 	char* givenPortNum = argv[1];
 	char* givenHostName = argv[2];
 	char* givenRemotePortNum = argv[3];
 
 	int localPortNum = atoi(givenPortNum);
 	int remotePortNum = atoi(givenRemotePortNum);
+
 
 	printf("PORTNUM %d hostname %s remotePortNum %d\n", localPortNum, givenHostName, remotePortNum);
 
@@ -121,9 +123,6 @@ int main(int argc, char* argv[]){
     }
 
     freeaddrinfo(res); // free the linked list
-    printf("IP ADDRESS is %s\n", ipstr);
-
-
 	struct sockaddr_in sin;
 	memset(&sin, 0, sizeof(sin));
 	sin.sin_family = AF_INET;
@@ -136,7 +135,6 @@ int main(int argc, char* argv[]){
 	sinRemote.sin_port = htons(remotePortNum);
 	inet_pton(AF_INET,ipstr,&(sinRemote.sin_addr));
 
-	printf("Address of remote afterwards is %d\n",sinRemote.sin_addr.s_addr);
 
 	// Create the socket for UDP
 	socketDescriptor = socket(AF_INET,SOCK_DGRAM,0);
@@ -145,6 +143,9 @@ int main(int argc, char* argv[]){
 	bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin));
 
 
+	struct socketStuff sockInfo;
+	sockInfo.socketDescriptor = socketDescriptor;
+	sockInfo.sin = sinRemote;
 
 	pthread_t threadListenPID;
 	pthread_t threadSendPID;
@@ -152,13 +153,13 @@ int main(int argc, char* argv[]){
 		&threadListenPID,
 		NULL,
 		receiveThread,
-		NULL
+		&sockInfo
 	);
 	pthread_create(
 		&threadSendPID,
 		NULL,
 		sendThread,
-		NULL
+		&sockInfo
 	);
 	pthread_join(threadSendPID, NULL);
 
@@ -166,4 +167,6 @@ int main(int argc, char* argv[]){
 	return 0;
 
 }
+
+
 
