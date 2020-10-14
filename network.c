@@ -19,6 +19,9 @@
 
 #include <arpa/inet.h>
 
+// #include "keyboardProducer.h"
+// #include "screenConsumer.h"
+
 #define MSG_MAX_LEN 1024
 
 
@@ -30,6 +33,47 @@ struct socketStuff{
 	struct sockaddr_in sin;
 };
 
+/*char* createAddrInfo(char* givenHostName) {
+	struct addrinfo hints, *res,*p;
+	
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_DGRAM;
+
+	int rv = getaddrinfo(givenHostName, NULL, &hints, &res);
+
+	if(rv < 0) {
+		printf("ERROR \n");
+		return NULL;
+	}
+
+	char* ipstr = malloc(sizeof(char)*INET6_ADDRSTRLEN);
+
+	for(p = res;p != NULL; p = p->ai_next) {
+        void *addr;
+        char *ipver;
+
+        // get the pointer to the address itself,
+        // different fields in IPv4 and IPv6:
+        if (p->ai_family == AF_INET) { // IPv4
+            struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
+            addr = &(ipv4->sin_addr);
+            ipver = "IPv4";
+        } else { // IPv6
+            struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
+            addr = &(ipv6->sin6_addr);
+            ipver = "IPv6";
+        }
+
+        // convert the IP to a string and print it:
+        inet_ntop(p->ai_family, addr, &ipstr[0], sizeof ipstr);
+        printf("  %s: %p\n", ipver, ipstr);
+    }
+
+    freeaddrinfo(res); // free the linked list
+
+	return ipstr;
+}*/
 
 void* sendThread(void* socketInput){
 	struct socketStuff* socketInfo = (struct socketStuff* ) socketInput;
@@ -85,19 +129,23 @@ int main(int argc, char* argv[]){
 
 	printf("PORTNUM %d hostname %s remotePortNum %d\n", localPortNum, givenHostName, remotePortNum);
 
+	//char* ipstr = createAddrInfo(givenHostName);
+
 	struct addrinfo hints, *res,*p;
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_DGRAM;
 
 	int rv = getaddrinfo(givenHostName, NULL, &hints, &res);
+
 	if(rv < 0){
-		printf("ERRROR \n");
+		printf("ERROR \n");
 		return 1;
 	}
-	printf("Checking results after getaddrinfo \n");
-	printf("ai_flags %d ai_family %d ai_socktype %d ai_cannonname %s \n",
-		res->ai_flags, res->ai_family, res->ai_socktype, res->ai_canonname);
+
+	// printf("Checking results after getaddrinfo \n");
+	// printf("ai_flags %d ai_family %d ai_socktype %d ai_cannonname %s \n",
+	// 	res->ai_flags, res->ai_family, res->ai_socktype, res->ai_canonname);
 
 	char ipstr[INET6_ADDRSTRLEN];
 
@@ -123,6 +171,7 @@ int main(int argc, char* argv[]){
     }
 
     freeaddrinfo(res); // free the linked list
+	
 	struct sockaddr_in sin;
 	memset(&sin, 0, sizeof(sin));
 	sin.sin_family = AF_INET;
@@ -131,7 +180,7 @@ int main(int argc, char* argv[]){
 
 
 	memset(&sinRemote, 0, sizeof(sinRemote));
-	sinRemote.sin_family = res->ai_family;
+	sinRemote.sin_family = AF_INET;
 	sinRemote.sin_port = htons(remotePortNum);
 	inet_pton(AF_INET,ipstr,&(sinRemote.sin_addr));
 
