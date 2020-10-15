@@ -11,7 +11,8 @@
 #include <netinet/in.h>
 #include <errno.h>
 
-// #include "keyboardProducer.h"
+#include "list.h"
+#include "keyboardProducer.h"
 // #include "screenConsumer.h"
 
 #define MSG_MAX_LEN 1024
@@ -19,6 +20,7 @@
 
 // static struct sockaddr_in sinRemote;
 static unsigned int sin_len;
+static pthread_mutex_t s_syncOkToTypeMutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct socketStuff{
 	int socketDescriptor;
@@ -39,12 +41,12 @@ void* sendThread(void* socketInput){
 
 		// Transmit a reply
 		sin_len = sizeof(sinRemote);
-		sendto(socketDescriptor, messageTx, strlen(messageTx), 0, (struct sockaddr*) &sinRemote, sin_len);
+		sendto(socketDescriptor, messageTx, strlen(messageTx), 0, 
+			(struct sockaddr*) &sinRemote, sin_len);
 
 	}
 
 	return NULL;
-
 }
 
 void* receiveThread(void* socketInput){
@@ -55,7 +57,8 @@ void* receiveThread(void* socketInput){
 	while(1){
 		sin_len = sizeof(sinRemote);
 		char messageRx[MSG_MAX_LEN];
-		int bytesRx = recvfrom(socketDescriptor, messageRx, MSG_MAX_LEN, 0, (struct sockaddr*) &sinRemote, &sin_len);
+		int bytesRx = recvfrom(socketDescriptor, messageRx, MSG_MAX_LEN, 0, 
+			(struct sockaddr*) &sinRemote, &sin_len);
 		
 		int terminateIdx = (bytesRx < MSG_MAX_LEN) ? bytesRx : MSG_MAX_LEN;
 		messageRx[terminateIdx] = 0;
@@ -66,10 +69,8 @@ void* receiveThread(void* socketInput){
 	return NULL;
 }
 
-
-int createSockets(int localPortNum, int remotePortNum, char* givenHostName, struct sockaddr_in* sinLocalInput, struct sockaddr_in* sinRemoteInput){
-	// struct sockaddr_in sin = *sinLocalInput;
-	// struct sockaddr_in sinRemote = *sinRemoteInput;
+int createSockets(int localPortNum, int remotePortNum, char* givenHostName, 
+	struct sockaddr_in* sinLocalInput, struct sockaddr_in* sinRemoteInput) {
 
 	struct addrinfo hints, *res,*p;
 	memset(&hints, 0, sizeof hints);
@@ -78,7 +79,7 @@ int createSockets(int localPortNum, int remotePortNum, char* givenHostName, stru
 
 	int rv = getaddrinfo(givenHostName, NULL, &hints, &res);
 
-	if(rv < 0){
+	if(rv < 0) {
 		printf("ERROR \n");
 		return 1;
 	}
@@ -123,55 +124,68 @@ int createSockets(int localPortNum, int remotePortNum, char* givenHostName, stru
 }
 
 int main(int argc, char* argv[]){
-	int socketDescriptor;
-	char* givenPortNum = argv[1];
-	char* givenHostName = argv[2];
-	char* givenRemotePortNum = argv[3];
+	// int socketDescriptor;
+	// char* givenPortNum = argv[1];
+	// char* givenHostName = argv[2];
+	// char* givenRemotePortNum = argv[3];
 
-	int localPortNum = atoi(givenPortNum);
-	int remotePortNum = atoi(givenRemotePortNum);
-
-
-	printf("PORTNUM %d hostname %s remotePortNum %d\n", localPortNum, givenHostName, remotePortNum);
-
-	//char* ipstr = createAddrInfo(givenHostName);
-
-	struct sockaddr_in sin;
-	struct sockaddr_in sinRemote;
-	int socketResult = createSockets(localPortNum, remotePortNum, givenHostName, &sin, &sinRemote);
-	if(socketResult != 0){
-		printf("Connection failed\n");
-		return 1;
-	}
-	// Create the socket for UDP
-	socketDescriptor = socket(AF_INET,SOCK_DGRAM,0);
+	// int localPortNum = atoi(givenPortNum);
+	// int remotePortNum = atoi(givenRemotePortNum);
 
 
-	// printf("After returning we have the following local %d %s  remote %d %s\n", sin.sin_port, sin.sin_addr, sinRemote.sin_port, sinRemote.sin_addr);
-	// Bind the socket to the port (PORT) that we specify
-	bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin));
+	// printf("PORTNUM %d hostname %s remotePortNum %d\n", localPortNum, givenHostName, remotePortNum);
+
+	// //char* ipstr = createAddrInfo(givenHostName);
+
+	// struct sockaddr_in sin;
+	// struct sockaddr_in sinRemote;
+	// int socketResult = createSockets(localPortNum, remotePortNum, givenHostName, &sin, &sinRemote);
+	// if(socketResult != 0){
+	// 	printf("Connection failed\n");
+	// 	return 1;
+	// }
+	// // Create the socket for UDP
+	// socketDescriptor = socket(AF_INET,SOCK_DGRAM,0);
+
+
+	// // printf("After returning we have the following local %d %s  remote %d %s\n", sin.sin_port, sin.sin_addr, sinRemote.sin_port, sinRemote.sin_addr);
+	// // Bind the socket to the port (PORT) that we specify
+	// bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin));
 	
-	struct socketStuff sockInfo;
-	sockInfo.socketDescriptor = socketDescriptor;
-	sockInfo.sin = sinRemote;
+	// struct socketStuff sockInfo;
+	// sockInfo.socketDescriptor = socketDescriptor;
+	// sockInfo.sin = sinRemote;
 
-	pthread_t threadListenPID;
-	pthread_t threadSendPID;
-	pthread_create(
-		&threadListenPID,
-		NULL,
-		receiveThread,
-		&sockInfo
-	);
-	pthread_create(
-		&threadSendPID,
-		NULL,
-		sendThread,
-		&sockInfo
-	);
-	pthread_join(threadSendPID, NULL);
+	//Create a list
+	List* localList = List_create();
 
-	pthread_join(threadListenPID, NULL);
+	Keyboard_Producer_init(&s_syncOkToTypeMutex, localList);
+
+
+
+	Keyboard_Producer_shutdown();
+
+
+
+	// pthread_t threadListenPID;
+	// pthread_t threadSendPID;
+    
+    // pthread_create(
+	// 	&threadSendPID,
+	// 	NULL,
+	// 	sendThread,
+	// 	&sockInfo
+	// );
+
+	// pthread_create(
+	// 	&threadListenPID,
+	// 	NULL,
+	// 	receiveThread,
+	// 	&sockInfo
+	// );
+	
+
+	// pthread_join(threadListenPID, NULL);
 	return 0;
 
 }
