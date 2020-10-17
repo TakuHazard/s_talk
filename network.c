@@ -1,8 +1,8 @@
 #include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -18,21 +18,19 @@
 #include "udpConsumer.h"
 #include "socketStuff.h"
 
-// static struct sockaddr_in sinRemote
+// Global variables
 static pthread_mutex_t s_syncOkToTypeMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_localListNotEmpty = PTHREAD_COND_INITIALIZER;
 socketStuff sockInfo;
 
-
 static pthread_mutex_t s_syncOkToRemoveFromList = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_remoteListNotEmpty = PTHREAD_COND_INITIALIZER;
-
 
 List* localList;
 List* remoteList;
 
-int createSockets(int localPortNum, int remotePortNum, char* givenHostName, 
-	struct sockaddr_in* sinLocalInput, struct sockaddr_in* sinRemoteInput) {
+// Get IP address of local and remote processes, then build required UDP Sockets
+int createSockets(int localPortNum, int remotePortNum, char* givenHostName, struct sockaddr_in* sinLocalInput, struct sockaddr_in* sinRemoteInput) {
 
 	struct addrinfo hints, *res,*p;
 	memset(&hints, 0, sizeof hints);
@@ -54,7 +52,7 @@ int createSockets(int localPortNum, int remotePortNum, char* givenHostName,
 
         // get the pointer to the address itself,
         // different fields in IPv4 and IPv6:
-        if (p->ai_family == AF_INET) { // IPv4
+        if(p->ai_family == AF_INET) { // IPv4
             struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
             addr = &(ipv4->sin_addr);
             ipver = "IPv4";
@@ -85,7 +83,7 @@ int createSockets(int localPortNum, int remotePortNum, char* givenHostName,
 	return 0;
 }
 
-int main(int argc, char* argv[]){
+int main(int argc, char* argv[]) {
 	int socketDescriptor;
 	char* givenPortNum = argv[1];
 	char* givenHostName = argv[2];
@@ -99,14 +97,16 @@ int main(int argc, char* argv[]){
 
 	struct sockaddr_in sin;
 	struct sockaddr_in sinRemote;
+	
 	int socketResult = createSockets(localPortNum, remotePortNum, givenHostName, &sin, &sinRemote);
-	if(socketResult != 0){
+	if(socketResult != 0) {
 		printf("Connection failed\n");
 		return 1;
 	}
+	
 	// Create the socket for UDP
 	socketDescriptor = socket(AF_INET,SOCK_DGRAM,0);
-
+	// Bind the socket to specified port and IP address
 	bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin));
 	
 	sockInfo.socketDescriptor = socketDescriptor;
@@ -116,18 +116,15 @@ int main(int argc, char* argv[]){
 	localList = List_create();
 	remoteList = List_create();
 
-
+	// Startup all threads
 	Keyboard_Producer_init(&s_syncOkToTypeMutex,&s_localListNotEmpty, localList);
 	UDP_Consumer_init(&s_syncOkToTypeMutex,&s_localListNotEmpty, localList, &sockInfo);
 	UDP_Producer_init(&s_syncOkToRemoveFromList,&s_remoteListNotEmpty,remoteList, &sockInfo);
 	Screen_Consumer_init(&s_syncOkToRemoveFromList, &s_remoteListNotEmpty, remoteList);
 
-	// Close threads
+	// Cleanup threads
 	Keyboard_Producer_shutdown();
 
 	return 0;
 
-}
-
-
-
+} // End of main

@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/socket.h>
-#include <pthread.h>
-#include <netdb.h>
-#include <string.h>
 #include <unistd.h>
+#include <pthread.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <errno.h>
@@ -14,11 +14,13 @@
 
 #define MSG_MAX_LEN 1024
 
-pthread_t threadSendPID;
-pthread_mutex_t syncOkToTypeMutex;
-pthread_cond_t* s_localListNotEmpty;
+static pthread_t threadSendPID;
+static pthread_mutex_t syncOkToTypeMutex;
+static pthread_cond_t* s_localListNotEmpty;
+
 void* localList;
 
+// Store the message into a List
 void* storeInList(void* localList) {
 
     while(1) {
@@ -41,9 +43,8 @@ void* storeInList(void* localList) {
 
 }
 
+// Initialize the Keyboard Producer Thread
 void Keyboard_Producer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t* pLocalListNotEmpty, void* localListInput) {
-    // create thread and put into list
-
     s_localListNotEmpty = pLocalListNotEmpty;
     localList = localListInput;
     syncOkToTypeMutex = *pSyncOkToTypeMutex;
@@ -57,8 +58,7 @@ void Keyboard_Producer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t*
 
 }
 
+// "close/cleanup" the thread
 void Keyboard_Producer_shutdown() {
-    // "close/cleanup" the thread
-
     pthread_join(threadSendPID, NULL);
 }

@@ -4,7 +4,7 @@
 #include <netdb.h>
 
 typedef struct socketStuff_s socketStuff;
-struct socketStuff_s{
+struct socketStuff_s {
 	int socketDescriptor;
 	struct sockaddr_in sin;
 };
