@@ -59,7 +59,6 @@ void UDP_Consumer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t* pLoc
     socketInput = sockInfo;
     struct sockaddr_in sinVar = socketInput->sin;
     int socketDescriptor = socketInput -> socketDescriptor;
-    printf("UDP_CONSUMER_INIT : socketDescript %d socketPort %d IPADDR %d", socketDescriptor,sinVar.sin_port,sinVar.sin_addr.s_addr);
 
     pthread_create(
 		&listenThreadPID,

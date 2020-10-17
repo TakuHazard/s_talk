@@ -15,10 +15,6 @@
 #include "keyboardProducer.h"
 #include "udpConsumer.h"
 
-#define MSG_MAX_LEN 1024
-
-
-
 // static struct sockaddr_in sinRemote;
 static unsigned int sin_len;
 static pthread_mutex_t s_syncOkToTypeMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -26,29 +22,12 @@ static pthread_cond_t s_localListNotEmpty = PTHREAD_COND_INITIALIZER;
 struct socketStuff sockInfo;
 
 
-List* localList;
-void* receiveThread(void* socketInput){
-	// Address
-	// printf("beginning to receive !\n");
-	struct socketStuff* socketInfo = (struct socketStuff* ) socketInput;
-	int socketDescriptor = socketInfo->socketDescriptor;
-	struct sockaddr_in sinRemote = socketInfo->sin;
-	while(1){
-		// printf("starting to listen\n");
-		sin_len = sizeof(sinRemote);
-		char messageRx[MSG_MAX_LEN];
-		// printf("receiveThread: before recvfrom\n");
-		int bytesRx = recvfrom(socketDescriptor, messageRx, MSG_MAX_LEN, 0, 
-			(struct sockaddr*) &sinRemote, &sin_len);
-		// printf("receiveThread: after recfrom\n");
-		int terminateIdx = (bytesRx < MSG_MAX_LEN) ? bytesRx : MSG_MAX_LEN;
-		messageRx[terminateIdx] = 0;
-		printf("%s", messageRx);
-	}
+static pthread_mutex_t s_syncOkToRemoveFromList = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t s_remoteListNotEmpty = PTHREAD_COND_INITIALIZER;
 
-	printf("Done with rxThread\n");
-	return NULL;
-}
+
+List* localList;
+List* remoteList;
 
 int createSockets(int localPortNum, int remotePortNum, char* givenHostName, 
 	struct sockaddr_in* sinLocalInput, struct sockaddr_in* sinRemoteInput) {
@@ -134,23 +113,15 @@ int main(int argc, char* argv[]){
 
 	//Create a list
 	localList = List_create();
+	remoteList = List_create();
+
 
 	Keyboard_Producer_init(&s_syncOkToTypeMutex,&s_localListNotEmpty, localList);
 	UDP_Consumer_init(&s_syncOkToTypeMutex,&s_localListNotEmpty, localList, &sockInfo);
-
-
-	pthread_t threadListenPID;
-	pthread_create(
-		&threadListenPID,
-		NULL,
-		receiveThread,
-		&sockInfo
-	);
-	
+	UDP_Producer_init(&s_syncOkToRemoveFromList,&s_remoteListNotEmpty,remoteList, &sockInfo);
 
 	Keyboard_Producer_shutdown();
 
-	// pthread_join(threadListenPID, NULL);
 	return 0;
 
 }
