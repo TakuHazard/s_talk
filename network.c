@@ -13,13 +13,15 @@
 
 #include "list.h"
 #include "keyboardProducer.h"
+#include "udpProducer.h"
+#include "screenConsumer.h"
 #include "udpConsumer.h"
+#include "socketStuff.h"
 
-// static struct sockaddr_in sinRemote;
-static unsigned int sin_len;
+// static struct sockaddr_in sinRemote
 static pthread_mutex_t s_syncOkToTypeMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_localListNotEmpty = PTHREAD_COND_INITIALIZER;
-struct socketStuff sockInfo;
+socketStuff sockInfo;
 
 
 static pthread_mutex_t s_syncOkToRemoveFromList = PTHREAD_MUTEX_INITIALIZER;
@@ -105,7 +107,6 @@ int main(int argc, char* argv[]){
 	// Create the socket for UDP
 	socketDescriptor = socket(AF_INET,SOCK_DGRAM,0);
 
-
 	bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin));
 	
 	sockInfo.socketDescriptor = socketDescriptor;
@@ -119,7 +120,9 @@ int main(int argc, char* argv[]){
 	Keyboard_Producer_init(&s_syncOkToTypeMutex,&s_localListNotEmpty, localList);
 	UDP_Consumer_init(&s_syncOkToTypeMutex,&s_localListNotEmpty, localList, &sockInfo);
 	UDP_Producer_init(&s_syncOkToRemoveFromList,&s_remoteListNotEmpty,remoteList, &sockInfo);
+	Screen_Consumer_init(&s_syncOkToRemoveFromList, &s_remoteListNotEmpty, remoteList);
 
+	// Close threads
 	Keyboard_Producer_shutdown();
 
 	return 0;
