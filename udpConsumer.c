@@ -43,6 +43,8 @@ void* sendThread() {
 		sin_len = sizeof(sinRemote);
 		int error = sendto(socketDescriptor, messageToSend, strlen(messageToSend), 0, (struct sockaddr*) &sinRemote, sin_len);
 
+		//free(messageToSend);
+
 		if(error==-1) {
 			perror("send");
 		}

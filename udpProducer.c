@@ -50,7 +50,7 @@ void* receiveThread() {
         pthread_mutex_unlock(&syncOkToRemoveFromList);
 	}
 
-    free(msg);
+    //free(msg);
 	return NULL;
 }
 

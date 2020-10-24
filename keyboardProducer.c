@@ -26,6 +26,11 @@ void* storeInList(void* localList) {
 
     while(1) {
         msg = (char*)malloc(sizeof(char)*(MSG_MAX_LEN));
+        char tmp[3];
+        tmp[0] = '!';
+        tmp[1] = '\n';
+        tmp[2] = 0;
+
         fflush(stdin);
         fgets(msg, sizeof(char)*(MSG_MAX_LEN), stdin);
         
@@ -38,9 +43,13 @@ void* storeInList(void* localList) {
         }
     
         pthread_mutex_unlock(&syncOkToTypeMutex);
+
+        if (strcmp(msg, tmp)==0) {
+            printf("End of session in keyboard!! \n");
+        }
     }
     
-    free(msg);
+    //free(msg);
 	return NULL;
 
 }

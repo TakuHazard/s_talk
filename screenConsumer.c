@@ -31,10 +31,18 @@ void* printThread() {
 
         List_first(remoteList);
         char* msg = List_remove(remoteList);
+        char tmp[3];
+        tmp[0] = '!';
+        tmp[1] = '\n';
+        tmp[2] = 0;
 
         pthread_mutex_unlock(&syncOkToRemoveFromList);
 
-        puts(msg); // message returned
+        if (strcmp(msg, tmp)==0) {
+            printf("End of session in screen!! \n");
+        } else {
+            fputs(msg, stdout); // message returned
+        }
 	}
 
     return NULL;
