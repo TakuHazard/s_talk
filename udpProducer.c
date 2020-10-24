@@ -28,10 +28,11 @@ static unsigned int sin_len;
 void* receiveThread() {
 	int socketDescriptor = socketInput->socketDescriptor;
 	struct sockaddr_in sinRemote = socketInput->sin;
+    char* msg = NULL;
 
 	while(1) {
 		sin_len = sizeof(sinRemote);
-        char* msg = (char*)malloc(sizeof(char)*(MSG_MAX_LEN));
+        msg = (char*)malloc(sizeof(char)*(MSG_MAX_LEN));
 		int bytesRx = recvfrom(socketDescriptor, msg, MSG_MAX_LEN, 0, (struct sockaddr*) &sinRemote, &sin_len);
 
         if(bytesRx==-1) {
@@ -49,6 +50,7 @@ void* receiveThread() {
         pthread_mutex_unlock(&syncOkToRemoveFromList);
 	}
 
+    free(msg);
 	return NULL;
 }
 

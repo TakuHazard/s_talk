@@ -22,9 +22,10 @@ void* localList;
 
 // Store the message into a List
 void* storeInList(void* localList) {
+    char* msg = NULL;
 
     while(1) {
-        char* msg = (char*)malloc(sizeof(char)*(MSG_MAX_LEN));
+        msg = (char*)malloc(sizeof(char)*(MSG_MAX_LEN));
         fflush(stdin);
         fgets(msg, sizeof(char)*(MSG_MAX_LEN), stdin);
         
@@ -38,7 +39,8 @@ void* storeInList(void* localList) {
     
         pthread_mutex_unlock(&syncOkToTypeMutex);
     }
-
+    
+    free(msg);
 	return NULL;
 
 }
