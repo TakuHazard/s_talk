@@ -16,8 +16,10 @@
 socketStuff* socketInput;
 
 static pthread_t listenThreadPID;
-static pthread_mutex_t s_syncOkToTypeMutex;
+
+static pthread_mutex_t listManipulation;
 static pthread_cond_t* s_localListNotEmpty;
+static pthread_cond_t* s_localListNotFull;
 
 static unsigned int sin_len;
 void* localList;
@@ -29,27 +31,25 @@ void* sendThread() {
 	char* messageToSend = NULL;
 
 	while(1) {
-		pthread_mutex_lock(&s_syncOkToTypeMutex);
-		
-		List_first(localList);
-		
-		while(List_count(localList) <= 0) {
-			pthread_cond_wait(s_localListNotEmpty, &s_syncOkToTypeMutex);
+		pthread_mutex_lock(&listManipulation);
+		while(List_count(localList) <= 0){
+			pthread_cond_wait(s_localListNotEmpty, &listManipulation);
 		}
 
-		messageToSend = List_remove(localList);
-
-		pthread_mutex_unlock(&s_syncOkToTypeMutex);
+		messageToSend = List_trim(localList);
+		//printf("%s sent", messageToSend);
+		pthread_mutex_unlock(&listManipulation);
+		pthread_cond_signal(s_localListNotFull);
 		
 		sin_len = sizeof(sinRemote);
-		int error = sendto(socketDescriptor, messageToSend, strlen(messageToSend), 0, (struct sockaddr*) &sinRemote, sin_len);
+		// int error = sendto(socketDescriptor, messageToSend, strlen(messageToSend), 0, (struct sockaddr*) &sinRemote, sin_len);
 
-		if(error==-1) {
-			perror("send");
-		} else {
+		// if(error==-1) {
+		// 	perror("send");
+		// } else {
 			free(messageToSend);
 			messageToSend = NULL;
-		}
+		// }
 	}
 
 	// free(messageToSend);
@@ -57,11 +57,16 @@ void* sendThread() {
 }
 
 // Initialize the UDP Consumer Thread
-void UDP_Consumer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t* pLocalListNotEmpty,void* localListInput, socketStuff* sockInfo){
-    s_localListNotEmpty = pLocalListNotEmpty;
+void UDP_Consumer_init(void* localListInput,socketStuff* sockInfo,pthread_mutex_t* pListManipulation,
+ 	pthread_cond_t* plocalListNotEmpty,pthread_cond_t* plocalListNotFull){
+
     localList = localListInput;
-    s_syncOkToTypeMutex = *pSyncOkToTypeMutex;
     socketInput = sockInfo;
+
+
+	listManipulation = *pListManipulation;
+	s_localListNotEmpty = plocalListNotEmpty;
+	s_localListNotFull = plocalListNotFull;
 
     pthread_create(
 		&listenThreadPID,

@@ -20,16 +20,22 @@
 #include "ShutdownManager.h"
 
 // Global variables
-static pthread_mutex_t s_syncOkToTypeMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t s_listManipulation = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_localListNotEmpty = PTHREAD_COND_INITIALIZER;
-socketStuff sockInfo;
+static pthread_cond_t  s_localListNotFull= PTHREAD_COND_INITIALIZER;
 
+socketStuff sockInfo;
 static pthread_mutex_t s_syncOkToRemoveFromList = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_remoteListNotEmpty = PTHREAD_COND_INITIALIZER;
 
 
+
 static pthread_mutex_t s_mutexShutdown = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t  s_cvBeginShuttingDown = PTHREAD_COND_INITIALIZER;
+
+
+
+
 
 List* localList;
 List* remoteList;
@@ -90,9 +96,9 @@ int createSockets(int localPortNum, int remotePortNum, char* givenHostName, stru
 
 int main(int argc, char* argv[]) {
 	int socketDescriptor;
-	char* givenPortNum = argv[1];
-	char* givenHostName = argv[2];
-	char* givenRemotePortNum = argv[3];
+	char* givenPortNum = "9000";
+	char* givenHostName = "localhost";
+	char* givenRemotePortNum = "9003";
 
 	int localPortNum = atoi(givenPortNum);
 	int remotePortNum = atoi(givenRemotePortNum);
@@ -122,16 +128,19 @@ int main(int argc, char* argv[]) {
 	remoteList = List_create();
 
 	// Startup all threads
-	Keyboard_Producer_init(&s_syncOkToTypeMutex,&s_localListNotEmpty, localList,&s_mutexShutdown,&s_cvBeginShuttingDown);
-	UDP_Consumer_init(&s_syncOkToTypeMutex,&s_localListNotEmpty, localList, &sockInfo);
+	Keyboard_Producer_init(localList,&s_mutexShutdown,&s_cvBeginShuttingDown,&s_listManipulation,&s_localListNotEmpty,&s_localListNotFull);
+	UDP_Consumer_init(localList, &sockInfo,&s_listManipulation,&s_localListNotEmpty,&s_localListNotFull);
 	UDP_Producer_init(&s_syncOkToRemoveFromList,&s_remoteListNotEmpty,remoteList, &sockInfo);
 	Screen_Consumer_init(&s_syncOkToRemoveFromList, &s_remoteListNotEmpty, remoteList,&s_mutexShutdown,&s_cvBeginShuttingDown);
 
 	// Cleanup threads
 	ShutDownManager_init(&s_mutexShutdown,&s_cvBeginShuttingDown);
 	ShutDownManager_shutdown();
+	//Keyboard_Producer_shutdown();
 
 	return 0;
 
-} // End of main
+} 
 
+
+void UDP_Consumer_init(void* localListInput,socketStuff* sockInfo,pthread_mutex_t* pListManipulation,pthread_cond_t* plocalListNotEmpty,pthread_cond_t* plocalListNotFull);

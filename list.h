@@ -11,29 +11,34 @@
 
 typedef struct Node_s Node;
 struct Node_s {
-    void* pItem;
-    Node* pNext;
-    Node* pPrev;
+    // TODO: You should change this
+    Node* stackNodePointer;
+    Node* next;
+    Node* prev;
+    void* data;
+    bool used;
 };
 
 enum ListOutOfBounds {
-    LIST_OOB_START,
-    LIST_OOB_END
+    LIST_OOB_START = 0,
+    LIST_OOB_END = 1,
+    LIST_OOB_VALID =2
 };
-
 typedef struct List_s List;
 struct List_s{
-    Node* pFirstNode;
-    Node* pLastNode;
-    Node* pCurrentNode;
-    int count;
-    List* pNextFreeHead;
-    enum ListOutOfBounds lastOutOfBoundsReason;
+    // TODO: You should change this!
+    enum ListOutOfBounds stateOfCurrentNode;
+    List* stackListPointer;
+    Node* currentNode;
+    Node* head;
+    Node* tail;
+    int countOfNodes;
+
 };
 
 // Maximum number of unique lists the system can support
 // (You may modify for your needs)
-#define LIST_MAX_NUM_HEADS 10
+#define LIST_MAX_NUM_HEADS 3
 
 // Maximum total number of nodes (statically allocated) to be shared across all lists
 // (You may modify for your needs)
@@ -49,6 +54,8 @@ struct List_s{
 List* List_create();
 
 // Returns the number of items in pList.
+
+void printState();
 int List_count(List* pList);
 
 // Returns a pointer to the first item in pList and makes the first item the current item.
@@ -106,7 +113,6 @@ void List_concat(List* pList1, List* pList2);
 // It should be invoked (within List_free) as: (*pItemFreeFn)(itemToBeFreedFromNode);
 // pList and all its nodes no longer exists after the operation; its head and nodes are 
 // available for future operations.
-// UPDATED: Changed function pointer type, May 19
 typedef void (*FREE_FN)(void* pItem);
 void List_free(List* pList, FREE_FN pItemFreeFn);
 
@@ -124,10 +130,12 @@ void* List_trim(List* pList);
 // that item is returned. If no match is found, the current pointer is left beyond the end of 
 // the list and a NULL pointer is returned.
 // 
-// UPDATED: Added May 19
 // If the current pointer is before the start of the pList, then start searching from
 // the first node in the list (if any).
 typedef bool (*COMPARATOR_FN)(void* pItem, void* pComparisonArg);
 void* List_search(List* pList, COMPARATOR_FN pComparator, void* pComparisonArg);
+
+void List_print(List* pList);
+
 
 #endif

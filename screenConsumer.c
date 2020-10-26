@@ -55,7 +55,7 @@ void* printThread() {
 
         } else {
             fputs(msg, stdout); // message returned
-            free(msg);
+            //free(msg);
             // msg = NULL;
         }
 	}
