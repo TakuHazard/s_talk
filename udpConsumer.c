@@ -43,7 +43,8 @@ void* sendThread() {
 		sin_len = sizeof(sinRemote);
 		int error = sendto(socketDescriptor, messageToSend, strlen(messageToSend), 0, (struct sockaddr*) &sinRemote, sin_len);
 
-		//free(messageToSend);
+		free(messageToSend);
+		messageToSend = NULL;
 
 		if(error==-1) {
 			perror("send");
@@ -70,5 +71,10 @@ void UDP_Consumer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t* pLoc
 
 // "close/cleanup" the thread
 void UDP_Consumer_shutdown() {
-        pthread_join(listenThreadPID, NULL);
+	pthread_cancel(listenThreadPID);
+
+	// TODO clear out the rest of the list
+
+
+    pthread_join(listenThreadPID, NULL);
 }

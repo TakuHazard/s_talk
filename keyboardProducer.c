@@ -11,12 +11,17 @@
 
 #include "list.h"
 #include "keyboardProducer.h"
+#include "ShutdownManager.h"
 
 #define MSG_MAX_LEN 1024
 
 static pthread_t threadSendPID;
 static pthread_mutex_t syncOkToTypeMutex;
 static pthread_cond_t* s_localListNotEmpty;
+
+// Mutex and condition variable for shutting down;
+static pthread_mutex_t mutexShutdown;
+static pthread_cond_t* s_CVStartShuttingdown;
 
 void* localList;
 
@@ -45,20 +50,28 @@ void* storeInList(void* localList) {
         pthread_mutex_unlock(&syncOkToTypeMutex);
 
         if (strcmp(msg, tmp)==0) {
-            printf("End of session in keyboard!! \n");
+            printf("Triggering shutting down sequence\n");
+            pthread_mutex_lock(&mutexShutdown);
+            ShutDownManager_TriggerShutdown();
+            pthread_cond_signal(s_CVStartShuttingdown);
+            pthread_mutex_unlock(&mutexShutdown);
         }
     }
     
-    //free(msg);
+    free(msg);
 	return NULL;
 
 }
 
 // Initialize the Keyboard Producer Thread
-void Keyboard_Producer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t* pLocalListNotEmpty, void* localListInput) {
+void Keyboard_Producer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t* pLocalListNotEmpty,
+ void* localListInput, pthread_mutex_t* pMutexShutdown,pthread_cond_t* pCVStartShuttingdown ) {
     s_localListNotEmpty = pLocalListNotEmpty;
     localList = localListInput;
     syncOkToTypeMutex = *pSyncOkToTypeMutex;
+
+    mutexShutdown = *pMutexShutdown;
+    s_CVStartShuttingdown = pCVStartShuttingdown;
     
     pthread_create(
 		&threadSendPID,
@@ -69,7 +82,8 @@ void Keyboard_Producer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t*
 
 }
 
-// "close/cleanup" the thread
+// "close/cleanup" the threads
 void Keyboard_Producer_shutdown() {
+    pthread_cancel(threadSendPID);
     pthread_join(threadSendPID, NULL);
 }

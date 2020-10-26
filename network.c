@@ -17,6 +17,7 @@
 #include "screenConsumer.h"
 #include "udpConsumer.h"
 #include "socketStuff.h"
+#include "ShutdownManager.h"
 
 // Global variables
 static pthread_mutex_t s_syncOkToTypeMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -25,6 +26,10 @@ socketStuff sockInfo;
 
 static pthread_mutex_t s_syncOkToRemoveFromList = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_remoteListNotEmpty = PTHREAD_COND_INITIALIZER;
+
+
+static pthread_mutex_t s_mutexShutdown = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t  s_cvBeginShuttingDown = PTHREAD_COND_INITIALIZER;
 
 List* localList;
 List* remoteList;
@@ -117,14 +122,16 @@ int main(int argc, char* argv[]) {
 	remoteList = List_create();
 
 	// Startup all threads
-	Keyboard_Producer_init(&s_syncOkToTypeMutex,&s_localListNotEmpty, localList);
+	Keyboard_Producer_init(&s_syncOkToTypeMutex,&s_localListNotEmpty, localList,&s_mutexShutdown,&s_cvBeginShuttingDown);
 	UDP_Consumer_init(&s_syncOkToTypeMutex,&s_localListNotEmpty, localList, &sockInfo);
 	UDP_Producer_init(&s_syncOkToRemoveFromList,&s_remoteListNotEmpty,remoteList, &sockInfo);
-	Screen_Consumer_init(&s_syncOkToRemoveFromList, &s_remoteListNotEmpty, remoteList);
+	Screen_Consumer_init(&s_syncOkToRemoveFromList, &s_remoteListNotEmpty, remoteList,&s_mutexShutdown,&s_cvBeginShuttingDown);
 
 	// Cleanup threads
-	Keyboard_Producer_shutdown();
+	ShutDownManager_init(&s_mutexShutdown,&s_cvBeginShuttingDown);
+	ShutDownManager_shutdown();
 
 	return 0;
 
 } // End of main
+

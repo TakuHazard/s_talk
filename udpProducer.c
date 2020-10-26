@@ -50,7 +50,7 @@ void* receiveThread() {
         pthread_mutex_unlock(&syncOkToRemoveFromList);
 	}
 
-    //free(msg);
+    free(msg);
 	return NULL;
 }
 
@@ -71,5 +71,6 @@ void UDP_Producer_init(pthread_mutex_t* psyncOkToRemoveFromListMutex, pthread_co
 
 // "close/cleanup" the thread
 void UDP_Producer_shutdown() {
+    pthread_cancel(threadReceivePID);
     pthread_join(threadReceivePID, NULL);
 }
