@@ -26,6 +26,7 @@ void* localList;
 void* sendThread() {	
 	int socketDescriptor = socketInput->socketDescriptor;
 	struct sockaddr_in sinRemote = socketInput->sin;
+	char* messageToSend = NULL;
 
 	while(1) {
 		pthread_mutex_lock(&s_syncOkToTypeMutex);
@@ -36,21 +37,22 @@ void* sendThread() {
 			pthread_cond_wait(s_localListNotEmpty, &s_syncOkToTypeMutex);
 		}
 
-		char* messageToSend = List_remove(localList);
+		messageToSend = List_remove(localList);
 
 		pthread_mutex_unlock(&s_syncOkToTypeMutex);
 		
 		sin_len = sizeof(sinRemote);
 		int error = sendto(socketDescriptor, messageToSend, strlen(messageToSend), 0, (struct sockaddr*) &sinRemote, sin_len);
 
-		free(messageToSend);
-		messageToSend = NULL;
-
 		if(error==-1) {
 			perror("send");
+		} else {
+			free(messageToSend);
+			messageToSend = NULL;
 		}
 	}
 
+	// free(messageToSend);
 	return NULL;
 }
 

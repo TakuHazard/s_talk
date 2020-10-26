@@ -58,7 +58,7 @@ void* storeInList(void* localList) {
         }
     }
     
-    free(msg);
+    // free(msg);
 	return NULL;
 
 }

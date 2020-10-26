@@ -31,7 +31,7 @@ void* ShutDownManger_WaitForShutdown(){
     while(!beginShuttingDown){
         printf("Beginning to go to sleep while waiting for signal to start shutdown\n");
         pthread_cond_wait(s_CVStartShuttingdown, &mutexShutdown);
-        printf("Waking up to start shutting down");
+        printf("Waking up to start shutting down\n");
     }
     pthread_mutex_unlock(&mutexShutdown);
 

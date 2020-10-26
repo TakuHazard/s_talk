@@ -28,6 +28,8 @@ static pthread_cond_t* s_CVStartShuttingdown;
 
 // Displays the message
 void* printThread() {
+    char* msg = NULL;
+    
     while(1) {     
         pthread_mutex_lock(&syncOkToRemoveFromList);
 
@@ -36,7 +38,7 @@ void* printThread() {
         }
 
         List_first(remoteList);
-        char* msg = List_remove(remoteList);
+        msg = List_remove(remoteList);
         char tmp[3];
         tmp[0] = '!';
         tmp[1] = '\n';
@@ -54,10 +56,11 @@ void* printThread() {
         } else {
             fputs(msg, stdout); // message returned
             free(msg);
-            msg = NULL;
+            // msg = NULL;
         }
 	}
 
+    // free(msg);
     return NULL;
 }
 
