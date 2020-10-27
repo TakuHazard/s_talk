@@ -104,7 +104,7 @@ int main(int argc, char* argv[]) {
 	socketDescriptor = socket(AF_INET,SOCK_DGRAM,0);
 	// Bind the socket to specified port and IP address
 	int bindResult = bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin));
-	if(bindResult != 0){
+	if(bindResult != 0) {
 		printf("Error binding to port\n");
 		return 1;
 	}
@@ -112,37 +112,32 @@ int main(int argc, char* argv[]) {
 	sockInfo.socketDescriptor = socketDescriptor;
 	sockInfo.sin = sinRemote;
 
-	//Create a list
+	// Create lists
 	localList = List_create();
 	remoteList = List_create();
 
 	// Startup all threads
-	Keyboard_Producer_init(&s_syncOkToTypeMutex,&s_localListNotEmpty, localList,&s_mutexShutdown,&s_cvBeginShuttingDown);
-	UDP_Consumer_init(&s_syncOkToTypeMutex,&s_localListNotEmpty, localList, &sockInfo);
-	UDP_Producer_init(&s_syncOkToRemoveFromList,&s_remoteListNotEmpty,remoteList, &sockInfo);
-	Screen_Consumer_init(&s_syncOkToRemoveFromList, &s_remoteListNotEmpty, remoteList,&s_mutexShutdown,&s_cvBeginShuttingDown);
+	Keyboard_Producer_init(&s_syncOkToTypeMutex, &s_localListNotEmpty, localList, &s_mutexShutdown, &s_cvBeginShuttingDown);
+	UDP_Consumer_init(&s_syncOkToTypeMutex, &s_localListNotEmpty, localList, &sockInfo);
+	UDP_Producer_init(&s_syncOkToRemoveFromList, &s_remoteListNotEmpty, remoteList, &sockInfo);
+	Screen_Consumer_init(&s_syncOkToRemoveFromList, &s_remoteListNotEmpty, remoteList, &s_mutexShutdown, &s_cvBeginShuttingDown);
 
 	// Cleanup threads
-	ShutDownManager_init(&s_mutexShutdown,&s_cvBeginShuttingDown);
+	ShutDownManager_init(&s_mutexShutdown, &s_cvBeginShuttingDown);
 	ShutDownManager_shutdown();
 
-	int aresult = pthread_mutex_destroy(&s_syncOkToTypeMutex);
-	int bresult = pthread_mutex_destroy(&s_syncOkToRemoveFromList);
-	int cresult = pthread_mutex_destroy(&s_mutexShutdown);
-	int dresult = pthread_cond_destroy(&s_localListNotEmpty);
-	int eresult = pthread_cond_destroy(&s_remoteListNotEmpty);
-	int fresult = pthread_cond_destroy(&s_cvBeginShuttingDown);
+	// Destroy all Mutex and Cond Variables
+	int m_ResA = pthread_mutex_destroy(&s_syncOkToTypeMutex);
+	int m_ResB = pthread_mutex_destroy(&s_syncOkToRemoveFromList);
+	int m_ResC = pthread_mutex_destroy(&s_mutexShutdown);
+	int cv_ResA = pthread_cond_destroy(&s_localListNotEmpty);
+	int cv_ResB = pthread_cond_destroy(&s_remoteListNotEmpty);
+	int cv_ResC = pthread_cond_destroy(&s_cvBeginShuttingDown);
 	
-	if(aresult != 0 || bresult != 0|| cresult != 0|| dresult != 0|| eresult != 0|| fresult != 0){
+	if(m_ResA != 0 || m_ResB != 0|| m_ResC != 0|| cv_ResA != 0|| cv_ResB != 0|| cv_ResC != 0) {
 		printf("Error destroying mutexes or condition variables\n");
 		return 1;
 	}
 
-
 	return 0;
-
 } 
-
-
-
-

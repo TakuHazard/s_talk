@@ -4,7 +4,8 @@
 #include "list.h"
 #include "socketStuff.h"
 
-void UDP_Producer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t* pLocalListNotEmpty, void* localListInput, socketStuff* sockInfo);
+void UDP_Producer_init(pthread_mutex_t* psyncOkToRemoveFromListMutex, pthread_cond_t* pRemoteListNotEmpty, 
+                        void* remoteListInput, socketStuff* sockInfo);
 void UDP_Producer_shutdown();
 
 #endif

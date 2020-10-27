@@ -24,10 +24,12 @@ void* localList;
 
 char* messageToSend = NULL;
 
-void messageDestructor(void* pItem){
+// Free the message list
+void messageDestructor(void* pItem) {
     free(pItem);
     pItem = NULL;
 }
+
 // Sends the message over the network
 void* sendThread() {	
 	int socketDescriptor = socketInput->socketDescriptor;
@@ -52,7 +54,7 @@ void* sendThread() {
 		free(messageToSend);
 		messageToSend = NULL;
 
-		if(error==-1) {
+		if(error == -1) {
 			perror("send");
 		}
 	}
@@ -61,7 +63,8 @@ void* sendThread() {
 }
 
 // Initialize the UDP Consumer Thread
-void UDP_Consumer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t* pLocalListNotEmpty,void* localListInput, socketStuff* sockInfo){
+void UDP_Consumer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t* pLocalListNotEmpty, 
+							void* localListInput, socketStuff* sockInfo){
     s_localListNotEmpty = pLocalListNotEmpty;
     localList = localListInput;
     s_syncOkToTypeMutex = *pSyncOkToTypeMutex;
@@ -77,13 +80,22 @@ void UDP_Consumer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t* pLoc
 
 // "close/cleanup" the thread
 void UDP_Consumer_shutdown() {
-	pthread_cancel(listenThreadPID);
+	int recv;
+	recv = pthread_cancel(listenThreadPID);
+	if(recv != 0) {
+		printf("UDP Consumer Thread failed to cancel!\n");
+	}
+
 	List_free(localList,*messageDestructor);
+	
 	pthread_mutex_unlock(&s_syncOkToTypeMutex);
 
-	if(messageToSend){
+	if(messageToSend) {
 		free(messageToSend);
 	}
 
-    pthread_join(listenThreadPID, NULL);
+    recv = pthread_join(listenThreadPID, NULL);
+	if(recv != 0) {
+		printf("UDP Consumer Thread failed to join!\n");
+	}
 }

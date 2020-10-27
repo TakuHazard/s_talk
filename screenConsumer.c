@@ -13,7 +13,6 @@
 #include "screenConsumer.h"
 #include "ShutdownManager.h"
 
-
 #define MSG_MAX_LEN 1024
 
 static pthread_t threadPrintPID;
@@ -27,7 +26,7 @@ static char* msg = NULL;
 static pthread_mutex_t mutexShutdown;
 static pthread_cond_t* s_CVStartShuttingdown;
 
-void messageDestructorCons(void* pItem){
+void messageDestructorCons(void* pItem) {
     free(pItem);
     pItem = NULL;
 }
@@ -52,8 +51,10 @@ void* printThread() {
 
         if (strcmp(msg, tmp) == 0) {
             pthread_mutex_lock(&mutexShutdown);
+
             ShutDownManager_TriggerShutdown();
             pthread_cond_signal(s_CVStartShuttingdown);
+            
             pthread_mutex_unlock(&mutexShutdown);
 
         } else {
@@ -67,8 +68,8 @@ void* printThread() {
 }
 
 // Initialize the UDP Producer Thread
-void Screen_Consumer_init(pthread_mutex_t* psyncOkToRemoveFromList, pthread_cond_t* pRemoteListNotEmpty, void* remoteListInput,
-pthread_mutex_t* pMutexShutdown,pthread_cond_t* pCVStartShuttingdown) {
+void Screen_Consumer_init(pthread_mutex_t* psyncOkToRemoveFromList, pthread_cond_t* pRemoteListNotEmpty, 
+                            void* remoteListInput, pthread_mutex_t* pMutexShutdown, pthread_cond_t* pCVStartShuttingdown) {
     s_remoteListNotEmpty = pRemoteListNotEmpty;
     remoteList = remoteListInput;
     syncOkToRemoveFromList = *psyncOkToRemoveFromList;
@@ -86,7 +87,12 @@ pthread_mutex_t* pMutexShutdown,pthread_cond_t* pCVStartShuttingdown) {
 
 // "close/cleanup" the thread
 void Screen_Consumer_shutdown() {
-    pthread_cancel(threadPrintPID);
+    int recv;
+    recv = pthread_cancel(threadPrintPID);
+    if(recv != 0) {
+		printf("Screen Thread failed to cancel!\n");
+	}
+
     pthread_mutex_unlock(&syncOkToRemoveFromList);
     pthread_mutex_unlock(&mutexShutdown);
 
@@ -96,8 +102,8 @@ void Screen_Consumer_shutdown() {
         msg = NULL;
     }
 
-    // TODO clear out the rest of the list;
-    pthread_join(threadPrintPID, NULL);
+    recv = pthread_join(threadPrintPID, NULL);
+    if(recv != 0) {
+		printf("Screen Thread failed to join!\n");
+	}
 }
-
-

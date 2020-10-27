@@ -56,7 +56,8 @@ void* receiveThread() {
 }
 
 // Initialize the UDP Producer Thread
-void UDP_Producer_init(pthread_mutex_t* psyncOkToRemoveFromListMutex, pthread_cond_t* pRemoteListNotEmpty,void* remoteListInput, socketStuff* sockInfo) {
+void UDP_Producer_init(pthread_mutex_t* psyncOkToRemoveFromListMutex, pthread_cond_t* pRemoteListNotEmpty, 
+                        void* remoteListInput, socketStuff* sockInfo) {
     s_remoteListNotEmpty = pRemoteListNotEmpty;
     remoteList = remoteListInput;
     syncOkToRemoveFromList = *psyncOkToRemoveFromListMutex;
@@ -72,12 +73,20 @@ void UDP_Producer_init(pthread_mutex_t* psyncOkToRemoveFromListMutex, pthread_co
 
 // "close/cleanup" the thread
 void UDP_Producer_shutdown() {
-    pthread_cancel(threadReceivePID);
+    int recv = pthread_cancel(threadReceivePID);
+    if(recv != 0) {
+		printf("UDP Producer Thread failed to cancel!\n");
+	}
+
     pthread_mutex_unlock(&syncOkToRemoveFromList);
 
-    if(!wasMessageSent){
+    if(!wasMessageSent) {
         free(msg);
         msg = NULL;
     }
-    pthread_join(threadReceivePID, NULL);
+
+    recv = pthread_join(threadReceivePID, NULL);
+    if(recv != 0) {
+		printf("UDP Producer Thread failed to join!\n");
+	}
 }

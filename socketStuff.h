@@ -9,5 +9,4 @@ struct socketStuff_s {
 	struct sockaddr_in sin;
 };
 
-
 #endif

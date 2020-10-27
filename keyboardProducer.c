@@ -27,7 +27,6 @@ static pthread_cond_t* s_CVStartShuttingdown;
 void* localList;
 char* msg = NULL;
 
-
 // Store the message into a List
 void* storeInList(void* localList) {
     while(1) {
@@ -58,8 +57,10 @@ void* storeInList(void* localList) {
 
         if (strcmp(msg, tmp)==0) {
             pthread_mutex_lock(&mutexShutdown);
+
             ShutDownManager_TriggerShutdown();
             pthread_cond_signal(s_CVStartShuttingdown);
+            
             pthread_mutex_unlock(&mutexShutdown);
         }
     }
@@ -70,8 +71,8 @@ void* storeInList(void* localList) {
 }
 
 // Initialize the Keyboard Producer Thread
-void Keyboard_Producer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t* pLocalListNotEmpty,
- void* localListInput, pthread_mutex_t* pMutexShutdown,pthread_cond_t* pCVStartShuttingdown ) {
+void Keyboard_Producer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t* pLocalListNotEmpty, void* localListInput, 
+                                pthread_mutex_t* pMutexShutdown, pthread_cond_t* pCVStartShuttingdown) {
     s_localListNotEmpty = pLocalListNotEmpty;
     localList = localListInput;
     syncOkToTypeMutex = *pSyncOkToTypeMutex;
@@ -90,12 +91,22 @@ void Keyboard_Producer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t*
 
 // "close/cleanup" the threads
 void Keyboard_Producer_shutdown() {
-    pthread_cancel(threadSendPID);
-    if(!wasMsgSentToList){
+    int recv;
+    recv = pthread_cancel(threadSendPID);
+    if(recv != 0) {
+		printf("Keyboard Thread failed to cancel!\n");
+	}
+
+    if(!wasMsgSentToList) {
         free(msg);
         msg = NULL;
     }
+
     pthread_mutex_unlock(&syncOkToTypeMutex);
     pthread_mutex_unlock(&mutexShutdown);
-    pthread_join(threadSendPID, NULL);
+
+    recv = pthread_join(threadSendPID, NULL);
+    if(recv != 0) {
+		printf("Keyboard Thread failed to join!\n");
+	}
 }
