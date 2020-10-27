@@ -36,7 +36,6 @@ List* remoteList;
 
 // Get IP address of local and remote processes, then build required UDP Sockets
 int createSockets(int localPortNum, int remotePortNum, char* givenHostName, struct sockaddr_in* sinLocalInput, struct sockaddr_in* sinRemoteInput) {
-
 	struct addrinfo hints, *res,*p;
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
@@ -92,8 +91,6 @@ int main(int argc, char* argv[]) {
 	int localPortNum = atoi(givenPortNum);
 	int remotePortNum = atoi(givenRemotePortNum);
 
-
-
 	struct sockaddr_in sin;
 	struct sockaddr_in sinRemote;
 	
@@ -106,7 +103,11 @@ int main(int argc, char* argv[]) {
 	// Create the socket for UDP
 	socketDescriptor = socket(AF_INET,SOCK_DGRAM,0);
 	// Bind the socket to specified port and IP address
-	bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin));
+	int bindResult = bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin));
+	if(bindResult != 0){
+		printf("Error binding to port\n");
+		return 1;
+	}
 	
 	sockInfo.socketDescriptor = socketDescriptor;
 	sockInfo.sin = sinRemote;
@@ -125,12 +126,17 @@ int main(int argc, char* argv[]) {
 	ShutDownManager_init(&s_mutexShutdown,&s_cvBeginShuttingDown);
 	ShutDownManager_shutdown();
 
-	pthread_mutex_destroy(&s_syncOkToTypeMutex);
-	pthread_mutex_destroy(&s_syncOkToRemoveFromList);
-	pthread_mutex_destroy(&s_mutexShutdown);
-	pthread_cond_destroy(&s_localListNotEmpty);
-	pthread_cond_destroy(&s_remoteListNotEmpty);
-	pthread_cond_destroy(&s_cvBeginShuttingDown);
+	int aresult = pthread_mutex_destroy(&s_syncOkToTypeMutex);
+	int bresult = pthread_mutex_destroy(&s_syncOkToRemoveFromList);
+	int cresult = pthread_mutex_destroy(&s_mutexShutdown);
+	int dresult = pthread_cond_destroy(&s_localListNotEmpty);
+	int eresult = pthread_cond_destroy(&s_remoteListNotEmpty);
+	int fresult = pthread_cond_destroy(&s_cvBeginShuttingDown);
+	
+	if(aresult != 0 || bresult != 0|| cresult != 0|| dresult != 0|| eresult != 0|| fresult != 0){
+		printf("Error destroying mutexes or condition variables\n");
+		return 1;
+	}
 
 
 	return 0;

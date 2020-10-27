@@ -39,7 +39,11 @@ void* storeInList(void* localList) {
         tmp[2] = 0;
 
         fflush(stdin);
-        fgets(msg, sizeof(char)*(MSG_MAX_LEN), stdin);
+        char* fgetsResult = fgets(msg, sizeof(char)*(MSG_MAX_LEN), stdin);
+        if(fgetsResult == NULL){
+            printf("Error getting input\n");
+            continue;
+        }
         
         pthread_mutex_lock(&syncOkToTypeMutex);
 
@@ -93,6 +97,5 @@ void Keyboard_Producer_shutdown() {
     }
     pthread_mutex_unlock(&syncOkToTypeMutex);
     pthread_mutex_unlock(&mutexShutdown);
-
     pthread_join(threadSendPID, NULL);
 }
