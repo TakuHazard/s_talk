@@ -53,23 +53,18 @@ int createSockets(int localPortNum, int remotePortNum, char* givenHostName, stru
 
 	for(p = res;p != NULL; p = p->ai_next) {
         void *addr;
-        char *ipver;
 
         // get the pointer to the address itself,
         // different fields in IPv4 and IPv6:
         if(p->ai_family == AF_INET) { // IPv4
             struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
             addr = &(ipv4->sin_addr);
-            ipver = "IPv4";
         } else { // IPv6
             struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
             addr = &(ipv6->sin6_addr);
-            ipver = "IPv6";
         }
 
-        // convert the IP to a string and print it:
         inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
-        printf("  %s: %s\n", ipver, ipstr);
     }
 
     freeaddrinfo(res); // free the linked list
@@ -98,7 +93,6 @@ int main(int argc, char* argv[]) {
 	int remotePortNum = atoi(givenRemotePortNum);
 
 
-	printf("PORTNUM %d hostname %s remotePortNum %d\n", localPortNum, givenHostName, remotePortNum);
 
 	struct sockaddr_in sin;
 	struct sockaddr_in sinRemote;
@@ -131,7 +125,18 @@ int main(int argc, char* argv[]) {
 	ShutDownManager_init(&s_mutexShutdown,&s_cvBeginShuttingDown);
 	ShutDownManager_shutdown();
 
+	pthread_mutex_destroy(&s_syncOkToTypeMutex);
+	pthread_mutex_destroy(&s_syncOkToRemoveFromList);
+	pthread_mutex_destroy(&s_mutexShutdown);
+	pthread_cond_destroy(&s_localListNotEmpty);
+	pthread_cond_destroy(&s_remoteListNotEmpty);
+	pthread_cond_destroy(&s_cvBeginShuttingDown);
+
+
 	return 0;
 
-} // End of main
+} 
+
+
+
 

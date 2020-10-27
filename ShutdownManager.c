@@ -26,17 +26,11 @@ static bool beginShuttingDown = false;
 
 // Wait on a mutex/conditional variable block this thread until someone calls trigger shutdown
 void* ShutDownManger_WaitForShutdown(){
-    printf("This is the shutdown manager beginning to wait \n");
     pthread_mutex_lock(&mutexShutdown); 
     while(!beginShuttingDown){
-        printf("Beginning to go to sleep while waiting for signal to start shutdown\n");
         pthread_cond_wait(s_CVStartShuttingdown, &mutexShutdown);
-        printf("Waking up to start shutting down");
     }
     pthread_mutex_unlock(&mutexShutdown);
-
-    printf("Telling all other threads to start shutting down\n");
-    // ShutDownManager_TriggerShutdown();
     return NULL;
 }
 

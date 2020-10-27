@@ -18,18 +18,20 @@
 static pthread_t threadSendPID;
 static pthread_mutex_t syncOkToTypeMutex;
 static pthread_cond_t* s_localListNotEmpty;
+static bool wasMsgSentToList = false;
 
 // Mutex and condition variable for shutting down;
 static pthread_mutex_t mutexShutdown;
 static pthread_cond_t* s_CVStartShuttingdown;
 
 void* localList;
+char* msg = NULL;
+
 
 // Store the message into a List
 void* storeInList(void* localList) {
-    char* msg = NULL;
-
     while(1) {
+        wasMsgSentToList = false;
         msg = (char*)malloc(sizeof(char)*(MSG_MAX_LEN));
         char tmp[3];
         tmp[0] = '!';
@@ -40,7 +42,8 @@ void* storeInList(void* localList) {
         fgets(msg, sizeof(char)*(MSG_MAX_LEN), stdin);
         
         pthread_mutex_lock(&syncOkToTypeMutex);
-    
+
+        wasMsgSentToList = true;
         List_append(localList, msg);
         
         if(List_count(localList) > 0) {
@@ -50,7 +53,6 @@ void* storeInList(void* localList) {
         pthread_mutex_unlock(&syncOkToTypeMutex);
 
         if (strcmp(msg, tmp)==0) {
-            printf("Triggering shutting down sequence\n");
             pthread_mutex_lock(&mutexShutdown);
             ShutDownManager_TriggerShutdown();
             pthread_cond_signal(s_CVStartShuttingdown);
@@ -85,5 +87,12 @@ void Keyboard_Producer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t*
 // "close/cleanup" the threads
 void Keyboard_Producer_shutdown() {
     pthread_cancel(threadSendPID);
+    if(!wasMsgSentToList){
+        free(msg);
+        msg = NULL;
+    }
+    pthread_mutex_unlock(&syncOkToTypeMutex);
+    pthread_mutex_unlock(&mutexShutdown);
+
     pthread_join(threadSendPID, NULL);
 }

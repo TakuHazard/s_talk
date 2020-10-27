@@ -22,6 +22,12 @@ static pthread_cond_t* s_localListNotEmpty;
 static unsigned int sin_len;
 void* localList;
 
+char* messageToSend = NULL;
+
+void messageDestructor(void* pItem){
+    free(pItem);
+    pItem = NULL;
+}
 // Sends the message over the network
 void* sendThread() {	
 	int socketDescriptor = socketInput->socketDescriptor;
@@ -36,7 +42,7 @@ void* sendThread() {
 			pthread_cond_wait(s_localListNotEmpty, &s_syncOkToTypeMutex);
 		}
 
-		char* messageToSend = List_remove(localList);
+		messageToSend = List_remove(localList);
 
 		pthread_mutex_unlock(&s_syncOkToTypeMutex);
 		
@@ -72,9 +78,12 @@ void UDP_Consumer_init(pthread_mutex_t* pSyncOkToTypeMutex, pthread_cond_t* pLoc
 // "close/cleanup" the thread
 void UDP_Consumer_shutdown() {
 	pthread_cancel(listenThreadPID);
+	List_free(localList,*messageDestructor);
+	pthread_mutex_unlock(&s_syncOkToTypeMutex);
 
-	// TODO clear out the rest of the list
-
+	if(messageToSend){
+		free(messageToSend);
+	}
 
     pthread_join(listenThreadPID, NULL);
 }

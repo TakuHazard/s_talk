@@ -20,11 +20,17 @@ static pthread_t threadPrintPID;
 static pthread_mutex_t syncOkToRemoveFromList;
 static pthread_cond_t* s_remoteListNotEmpty;
 void* remoteList;
+static char* msg = NULL;
 
 
 // Mutex and condition variable for shutting down;
 static pthread_mutex_t mutexShutdown;
 static pthread_cond_t* s_CVStartShuttingdown;
+
+void messageDestructorCons(void* pItem){
+    free(pItem);
+    pItem = NULL;
+}
 
 // Displays the message
 void* printThread() {
@@ -36,7 +42,7 @@ void* printThread() {
         }
 
         List_first(remoteList);
-        char* msg = List_remove(remoteList);
+        msg = List_remove(remoteList);
         char tmp[3];
         tmp[0] = '!';
         tmp[1] = '\n';
@@ -45,14 +51,13 @@ void* printThread() {
         pthread_mutex_unlock(&syncOkToRemoveFromList);
 
         if (strcmp(msg, tmp) == 0) {
-            printf("Trigger shutting down sequence in screen!! \n");
             pthread_mutex_lock(&mutexShutdown);
             ShutDownManager_TriggerShutdown();
             pthread_cond_signal(s_CVStartShuttingdown);
             pthread_mutex_unlock(&mutexShutdown);
 
         } else {
-            fputs(msg, stdout); // message returned
+            fputs(msg, stdout);
             free(msg);
             msg = NULL;
         }
@@ -82,7 +87,17 @@ pthread_mutex_t* pMutexShutdown,pthread_cond_t* pCVStartShuttingdown) {
 // "close/cleanup" the thread
 void Screen_Consumer_shutdown() {
     pthread_cancel(threadPrintPID);
+    pthread_mutex_unlock(&syncOkToRemoveFromList);
+    pthread_mutex_unlock(&mutexShutdown);
+
+    List_free(remoteList, *messageDestructorCons);
+    if(msg){
+        free(msg);
+        msg = NULL;
+    }
 
     // TODO clear out the rest of the list;
     pthread_join(threadPrintPID, NULL);
 }
+
+
