@@ -13,7 +13,7 @@
 #include "keyboardProducer.h"
 #include "ShutdownManager.h"
 
-#define MSG_MAX_LEN 1024
+#define MSG_MAX_LEN 5096
 
 static pthread_t threadSendPID;
 static pthread_mutex_t syncOkToTypeMutex;

@@ -13,7 +13,7 @@
 #include "screenConsumer.h"
 #include "ShutdownManager.h"
 
-#define MSG_MAX_LEN 1024
+#define MSG_MAX_LEN 5096
 
 static pthread_t threadPrintPID;
 static pthread_mutex_t syncOkToRemoveFromList;
@@ -59,7 +59,7 @@ void* printThread() {
 
         } else {
             fputs(msg, stdout);
-            free(msg);
+            List_free(remoteList, *messageDestructorCons);
             msg = NULL;
         }
 	}

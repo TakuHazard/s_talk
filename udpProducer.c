@@ -13,7 +13,7 @@
 #include "socketStuff.h"
 #include "udpProducer.h"
 
-#define MSG_MAX_LEN 1024
+#define MSG_MAX_LEN 5096
 
 socketStuff* socketInput;
 
