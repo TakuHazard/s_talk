@@ -60,7 +60,6 @@ void* printThread() {
         } else {
             fputs(msg, stdout);
             List_free(remoteList, *messageDestructorCons);
-            free(msg);
             msg = NULL;
         }
 	}
