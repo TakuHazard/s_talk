@@ -58,9 +58,8 @@ void* printThread() {
             pthread_mutex_unlock(&mutexShutdown);
 
         } else {
-            // fputs(msg, stdout);
-            write(stdout,msg,MSG_MAX_LEN);
-            // List_free(remoteList, *messageDestructorCons);
+            fputs(msg, stdout);
+            List_free(remoteList, *messageDestructorCons);
             free(msg);
             msg = NULL;
         }
